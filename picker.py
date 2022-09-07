@@ -11,12 +11,29 @@ class Picker():
         self.run = True
         self.framerate = 90
         self.clock = pygame.time.Clock()
-        self.resolution = (576, 1024)
+        self.resolution = (576, 1024)#(768, 1360)
         self.screen = None
         self.pygame_flags = 0 #pygame.FULLSCREEN|pygame.NOFRAME :: for testing.
         self.caption = 'soon...'
         self.timer = 25
         self.boot = None
+
+        # Create some data vars
+        self.rectangles = [None]*16
+        self.buttons = [None]*16
+        self.files = [None]*16
+        self.buttons[15] = 'START!'
+
+        # Read games.json to add buttons.
+        i = 0
+        games = json.loads(open('./games.json', 'r').read())
+        for game in games:
+            if i > 14:
+                continue
+            self.buttons[i] = game['title']
+            self.boot = (game['title'], game['filepath'])
+            self.files[i] = game['filepath']
+            i+=1
 
         # Now we just light the fuse!
         self.startMenu()
@@ -50,7 +67,19 @@ class Picker():
                 if event.key == pygame.K_RETURN:
                     # will be used for rebinding.
                     print('rebind comin soon :tm:')
-    
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                '''
+                Handle mouse/touch.
+                '''
+                mouse_pos = pygame.mouse.get_pos()
+                for i in range(16):
+                    if self.buttons[i] == None:
+                        continue
+                    mouse_diff = (self.rectangles[i]['x']-mouse_pos[0], self.rectangles[i]['y']-mouse_pos[1])
+                    if mouse_diff[0] <= 4 and mouse_diff[1] <= 4:
+                        self.boot = (self.buttons[i], self.files[i])
+     
     def startWindow(self):
         '''
         Inits the PyGame window, sets all details.
@@ -110,23 +139,6 @@ class Picker():
             self.system_font = font_path
         else: raise Exception(f"Can't load the font! Please check that {font_path} exists!")
 
-        # Create some data vars
-        rectangles = [None]*16
-        buttons = [None]*16
-        files = [None]*16
-        buttons[15] = 'START!'
-
-        # Read games.json to add buttons.
-        i = 0
-        games = json.loads(open('./games.json', 'r').read())
-        for game in games:
-            if i > 14:
-                continue
-            buttons[i] = game['title']
-            self.boot = (game['title'], game['filepath'])
-            files[i] = game['filepath']
-            i+=1
-
         # We made it!
         self.caption = 'pick a game!'
 
@@ -176,7 +188,7 @@ class Picker():
             for a in range(4):
                 for b in range(4):
                     self.drawTexture(button_frame, (frame_x, frame_y), (90, 155))
-                    rectangles[i] = {
+                    self.rectangles[i] = {
                         'name': f'rect_{i}',
                         'x': (frame_x),
                         'y': (frame_y)
@@ -188,17 +200,17 @@ class Picker():
 
             # Now, we add the real buttons.
             i = 0
-            for rectangle in rectangles:
-                if buttons[i] == None:
+            for rectangle in self.rectangles:
+                if self.buttons[i] == None:
                     i+=1
                     continue
                 self.drawTexture(button, (rectangle['x'], rectangle['y']), (90, 150))
-                if len(buttons[i].split('\n')) == 2:
+                if len(self.buttons[i].split('\n')) == 2:
                     txtoffset = -20
                 else:
                     txtoffset = 0
 
-                for e in buttons[i].split('\n'):
+                for e in self.buttons[i].split('\n'):
                     self.drawText(e, (255, 255, 255), rectangle['x']+60, rectangle['y']+59+txtoffset, 21, 1)
                     txtoffset = 20
                 i+=1
@@ -209,13 +221,20 @@ class Picker():
 
         clean_title = self.boot[0].replace('\n', ' ')
         self.screen.fill(pygame.Color("black"))
+        print(self.boot)
+
+        if self.boot[1] == None:
+            # Special case for the start button.
+            print(f"Starting {clean_title}")
+            exit()
+
         if os.path.exists(self.boot[1]):
             print(f'Starting {clean_title}, goodbye!')
             os.startfile(self.boot[1])
-            self.exit()
+            exit()
         else:
             raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
-            
+
 
 # Start the FEVER!
 if __name__ == "__main__":
