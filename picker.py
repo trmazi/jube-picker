@@ -52,6 +52,21 @@ class Picker():
         # enter a loop.... FOREVERRRRRR (not true)
         self.theLoop()
 
+    def launchProgram(self):
+        '''
+        GTFO, launch the game.
+        '''
+        clean_title = self.boot[0].replace('\n', ' ')
+        self.screen.fill(pygame.Color("black"))
+        print(self.boot)
+
+        if os.path.exists(self.boot[1]):
+            print(f'Starting {clean_title}, goodbye!')
+            os.startfile(self.boot[1])
+            exit()
+        else:
+            raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
+
     def eventHandler(self):
         '''
         Handles game events.
@@ -77,7 +92,10 @@ class Picker():
                     if self.buttons[i] == None:
                         continue
                     mouse_diff = (self.rectangles[i]['x']-mouse_pos[0], self.rectangles[i]['y']-mouse_pos[1])
-                    if mouse_diff[0] <= 4 and mouse_diff[1] <= 4:
+                    if mouse_diff[0] <= 3 and mouse_diff[1] <= 1:
+                        if i == 15:
+                            # Special stuff for start button
+                            self.launchProgram()
                         self.boot = (self.buttons[i], self.files[i])
      
     def startWindow(self):
@@ -218,22 +236,7 @@ class Picker():
             # End the tick!
             pygame.display.update()
             self.screen.fill(pygame.Color("black"))
-
-        clean_title = self.boot[0].replace('\n', ' ')
-        self.screen.fill(pygame.Color("black"))
-        print(self.boot)
-
-        if self.boot[1] == None:
-            # Special case for the start button.
-            print(f"Starting {clean_title}")
-            exit()
-
-        if os.path.exists(self.boot[1]):
-            print(f'Starting {clean_title}, goodbye!')
-            os.startfile(self.boot[1])
-            exit()
-        else:
-            raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
+        self.launchProgram()
 
 
 # Start the FEVER!
