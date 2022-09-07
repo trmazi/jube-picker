@@ -1,0 +1,42 @@
+[
+    {
+        "title": "Jubeat",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nRipples",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nKnit",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nCopius",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nSaucer",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Saucer\nFulfil",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nProp",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nQubell",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nClan",
+        "filepath": "/path/to/executible"
+    },
+    {
+        "title": "Jubeat\nFesto",
+        "filepath": "/path/to/executible"
+    }
+]
