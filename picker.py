@@ -11,7 +11,7 @@ class Picker():
         self.run = True
         self.framerate = 90
         self.clock = pygame.time.Clock()
-        self.resolution = (576, 1024)#(768, 1360)
+        self.resolution = (576, 1024)#(768, 1360) # Do not change! Assets will not scale.
         self.screen = None
         self.pygame_flags = 0 #pygame.FULLSCREEN|pygame.NOFRAME :: for testing.
         self.caption = 'soon...'
@@ -31,7 +31,7 @@ class Picker():
             if i > 14:
                 continue
             self.buttons[i] = game['title']
-            self.boot = (game['title'], game['filepath'])
+            self.boot = (game['title'], game['filepath'], i)
             self.files[i] = game['filepath']
             i+=1
 
@@ -91,12 +91,11 @@ class Picker():
                 for i in range(16):
                     if self.buttons[i] == None:
                         continue
-                    mouse_diff = (self.rectangles[i]['x']-mouse_pos[0], self.rectangles[i]['y']-mouse_pos[1])
-                    if mouse_diff[0] <= 3 and mouse_diff[1] <= 1:
+                    if self.rectangles[i]['x']+100 > mouse_pos[0] > self.rectangles[i]['x'] and self.rectangles[i]['y']+100 > mouse_pos[1] > self.rectangles[i]['y']:
                         if i == 15:
                             # Special stuff for start button
                             self.launchProgram()
-                        self.boot = (self.buttons[i], self.files[i])
+                        self.boot = (self.buttons[i], self.files[i], i)
      
     def startWindow(self):
         '''
@@ -113,16 +112,22 @@ class Picker():
         self.screen = pygame.display.set_mode(self.resolution, self.pygame_flags, display=0, vsync=1)
         print('Welcome to JubePicker!')
 
-    def drawTexture(self, texture: pygame.Surface, coordinates: Tuple[int, int], size: Tuple[int, int] = None):
+    def drawTexture(self, texture: pygame.Surface, coordinates: Tuple[int, int], size: Tuple[int, int] = None, direct: bool = False):
         # let's throw this on the screen.
         original_res = texture.get_size()
         textrect = texture.get_rect()
         textrect.center = coordinates
         if size != None:
-            texture = pygame.transform.smoothscale(texture, (
-                int(size[0]*original_res[0]/self.resolution[0]),
-                int(size[1]*original_res[1]/self.resolution[1])
-            ))
+            if direct:
+                texture = pygame.transform.smoothscale(texture, (
+                    int(original_res[0]/size[0]),
+                    int(original_res[1]/size[1])
+                ))
+            else:
+                texture = pygame.transform.smoothscale(texture, (
+                    int(size[0]*original_res[0]/self.resolution[0]),
+                    int(size[1]*original_res[1]/self.resolution[1])
+                ))
         self.screen.blit(texture, coordinates)
 
     def drawText(self, text: str, color: tuple, x: int, y: int, size: int, align: int):
@@ -149,6 +154,7 @@ class Picker():
         title = pygame.image.load('./assets/tex/title.png')
         subtitle = pygame.image.load('./assets/tex/subtitle.png')
         button_frame = pygame.image.load('./assets/tex/button_frame.png')
+        button_select = pygame.image.load('./assets/tex/button_select.png')
         button = pygame.image.load('./assets/tex/button.png')
 
         # Now, we should load the system font path into a var. We'll do a simple check on it to be safe.
@@ -205,7 +211,10 @@ class Picker():
             i = 0
             for a in range(4):
                 for b in range(4):
-                    self.drawTexture(button_frame, (frame_x, frame_y), (90, 155))
+                    if i == self.boot[2]:
+                        self.drawTexture(button_select, (frame_x, frame_y), (90, 155))
+                    else:
+                        self.drawTexture(button_frame, (frame_x, frame_y), (90, 155))
                     self.rectangles[i] = {
                         'name': f'rect_{i}',
                         'x': (frame_x),
@@ -222,7 +231,7 @@ class Picker():
                 if self.buttons[i] == None:
                     i+=1
                     continue
-                self.drawTexture(button, (rectangle['x'], rectangle['y']), (90, 150))
+                self.drawTexture(button, (rectangle['x']+9, rectangle['y']+9), (6, 6), direct = True)
                 if len(self.buttons[i].split('\n')) == 2:
                     txtoffset = -20
                 else:
