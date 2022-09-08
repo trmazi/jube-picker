@@ -1,0 +1,87 @@
+{
+    "controller":{
+        "used_buttons":[],
+        "bindings": [
+            {
+                "button": 0,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 1,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 2,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 3,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 4,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 5,
+                "controller": "",
+                "bound_to": ""
+            },{
+                "button": 6,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 7,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 8,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 9,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 10,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 11,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 12,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 13,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 14,
+                "controller": "",
+                "bound_to": ""
+            },
+            {
+                "button": 15,
+                "controller": "",
+                "bound_to": ""
+            }
+        ]
+    },
+    "firstboot": 1
+}
