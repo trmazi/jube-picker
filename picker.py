@@ -11,11 +11,11 @@ class Picker():
         self.system = systemjson
         self.binding = False
         self.run = True
-        self.framerate = 90
+        self.framerate = 900
         self.clock = pygame.time.Clock()
-        self.resolution = (576, 1024)#(768, 1360) # Do not change! Assets will not scale.
+        self.resolution = (768, 1360) # Do not change! Assets will not scale.
         self.screen = None
-        self.pygame_flags = 0 #pygame.FULLSCREEN|pygame.NOFRAME :: for testing.
+        self.pygame_flags = pygame.FULLSCREEN|pygame.NOFRAME
         self.caption = 'soon...'
         self.timer = 25
         self.boot = None
@@ -48,6 +48,135 @@ class Picker():
 
         # Now we just light the fuse!
         self.startMenu()
+
+    def startMenu(self):
+        '''
+        Used to setup the pygame window, and init pygame.
+        '''
+        # Wake up pygame
+        pygame.init()
+
+        # Set up the screen
+        self.startWindow()
+
+        # Wake up controller stuff.
+        pygame.joystick.init()
+        self.initControllers()
+
+        # enter a loop.... FOREVERRRRRR (not true)
+        self.theLoop()
+
+    def initWindow(self):
+        '''
+        Init window name and icon.
+        '''
+        pygame.display.set_caption(f'JubePicker V1.0 ({self.caption})')
+        pygame.display.set_icon(pygame.image.load('./assets/tex/icon.png'))
+
+    def launchProgram(self):
+        '''
+        GTFO, launch the game.
+        '''
+        clean_title = self.boot[0].replace('\n', ' ')
+        self.screen.fill(pygame.Color("black"))
+        print(self.boot)
+
+        if os.path.exists(self.boot[1]):
+            print(f'Starting {clean_title}, goodbye!')
+            os.startfile(self.boot[1])
+            exit()
+        else:
+            raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
+
+    def eventHandler(self):
+        '''
+        Handles game events.
+        '''
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.run = False
+                print('thank you for playing!')
+                pygame.display.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    # Wipe data and trigger controller binding.
+                    self.resetSystemData()
+                    self.bindControllers()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                '''
+                Handle mouse/touch.
+                '''
+                mouse_pos = pygame.mouse.get_pos()
+                for i in range(16):
+                    if self.buttons[i] == None:
+                        continue
+                    if self.rectangles[i]['x']+100 > mouse_pos[0] > self.rectangles[i]['x'] and self.rectangles[i]['y']+100 > mouse_pos[1] > self.rectangles[i]['y']:
+                        if i == 15:
+                            # Special stuff for start button
+                            self.launchProgram()
+                        self.boot = (self.buttons[i], self.files[i], i)
+
+            elif event.type == pygame.JOYBUTTONDOWN:
+                for i in self.system['controller']['bindings']:
+                    button = i['button']
+                    joystick = self.joysticks[i['controller']]['joystick']
+                    bound = i['bound_to']
+
+                    if joystick.get_button(bound) and self.buttons[button] != None:
+                        if button == 15:
+                            # Special stuff for start button
+                            self.launchProgram()
+                        self.boot = (self.buttons[button], self.files[button], button)
+     
+    def startWindow(self):
+        '''
+        Inits the PyGame window, sets all details.
+        '''
+        # Start display
+        pygame.display.init()
+
+        # We should init the caption and icon before the screen runs.
+        self.initWindow()
+
+        # Start the screen
+        self.screen = pygame.display.set_mode(self.resolution, self.pygame_flags, display=0, vsync=1)
+        print('Welcome to JubePicker!')
+
+    def drawTexture(self, texture: pygame.Surface, coordinates: Tuple[int, int], size: Tuple[int, int] = None, direct: bool = False):
+        # let's throw this on the screen.
+        original_res = texture.get_size()
+        textrect = texture.get_rect()
+        textrect.center = coordinates
+        if size != None:
+            if direct:
+                texture = pygame.transform.smoothscale(texture, (
+                    int(original_res[0]/size[0]),
+                    int(original_res[1]/size[1])
+                ))
+            else:
+                texture = pygame.transform.smoothscale(texture, (
+                    int(size[0]*original_res[0]/self.resolution[0]),
+                    int(size[1]*original_res[1]/self.resolution[1])
+                ))
+        self.screen.blit(texture, coordinates)
+
+    def drawText(self, text: str, color: tuple, x: int, y: int, size: int, align: int):
+        font = pygame.font.Font(self.system_font, int(size*self.resolution[1]/768))
+        textobj = font.render(text, 1, color)
+        textrect = textobj.get_rect()
+
+        if align == 0:
+            textrect.topleft = (x, y)
+        elif align == 1:
+            textrect.center = (x, y)
+        elif align == 2:
+            textrect.topright = (x, y)
+        else: raise Exception('Unknown font position! Please use 0, 1, 2!')
+
+        self.screen.blit(textobj, textrect)
 
     def saveSystemData(self):
         '''
@@ -142,7 +271,7 @@ class Picker():
 
         self.binding = True
         self.caption = 'binding controllers...'
-        pygame.display.set_caption(f'JubePicker V0.2 ({self.caption})')
+        self.initWindow()
 
         bound = [False]*16
 
@@ -152,24 +281,24 @@ class Picker():
                 while binding['bound_to'] == '':
                     # Headers
                     self.drawTexture(background, (0, 0))
-                    self.drawTexture(title, (self.resolution[0]/5, 1), (55, 100))
-                    self.drawText('Controller Binding', (100, 200, 200), 280, 200, 26, 1)
-                    self.drawText('Buttons are in order from top left to bottom right.', (200, 100, 200), 280, 230, 15, 1)
+                    self.drawTexture(title, (self.resolution[0]/5, 1), (120, 200))
+                    self.drawText('Controller Binding', (100, 200, 200), self.resolution[0]/2, 260, 26, 1)
+                    self.drawText('Buttons are in order from top left to bottom right.', (200, 100, 200), self.resolution[0]/2, 310, 15, 1)
 
                     # Let's draw the button frames. We'll make the ones that are bound glow.
-                    x_offset = 150
-                    y_offset = 150
-                    x_stock = self.resolution[0]/180
-                    frame_x = self.resolution[0]/180
-                    frame_y = 450
+                    x_offset = 200
+                    y_offset = 195
+                    x_stock = self.resolution[0]/200
+                    frame_x = self.resolution[0]/200
+                    frame_y = 600
 
                     i = 0
                     for a in range(4):
                         for b in range(4):
                             if bound[i]:
-                                self.drawTexture(button_select, (frame_x, frame_y), (90, 155))
+                                self.drawTexture(button_select, (frame_x, frame_y), (160, 280))
                             else:
-                                self.drawTexture(button_frame, (frame_x, frame_y), (90, 155))
+                                self.drawTexture(button_frame, (frame_x, frame_y), (160, 280))
                             frame_x += x_offset
                             i+=1
                         frame_y += y_offset
@@ -177,7 +306,7 @@ class Picker():
 
                     events = self.bindEventHandle()
                     button = binding['button']
-                    self.drawText(f'Press button {button+1}!', (200, 200, 200), 280, 270, 26, 1)
+                    self.drawText(f'Press button {button+1}!', (200, 200, 200), self.resolution[0]/2, 370, 26, 1)
 
                     if len(events) == 1:
                         event = events[0]
@@ -193,136 +322,13 @@ class Picker():
             self.bindEventHandle()
             self.drawTexture(background, (0, 0))
             self.drawTexture(title, (self.resolution[0]/5, 1), (55, 100))
-            self.drawText('Controller binding complete!', (100, 200, 200), 280, 200, 26, 1)
+            self.drawText('Controller binding complete!', (100, 200, 200), self.resolution[0]/2, 260, 26, 1)
 
             pygame.display.update()
             self.screen.fill(pygame.Color("black"))
             self.system['firstboot'] = False
             self.saveSystemData()
             self.binding = False
-
-    def startMenu(self):
-        '''
-        Used to setup the pygame window, and init pygame.
-        '''
-        # Wake up pygame
-        pygame.init()
-
-        # Set up the screen
-        self.startWindow()
-
-        # Wake up controller stuff.
-        pygame.joystick.init()
-        self.initControllers()
-
-        # enter a loop.... FOREVERRRRRR (not true)
-        self.theLoop()
-
-    def launchProgram(self):
-        '''
-        GTFO, launch the game.
-        '''
-        clean_title = self.boot[0].replace('\n', ' ')
-        self.screen.fill(pygame.Color("black"))
-        print(self.boot)
-
-        if os.path.exists(self.boot[1]):
-            print(f'Starting {clean_title}, goodbye!')
-            os.startfile(self.boot[1])
-            exit()
-        else:
-            raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
-
-    def eventHandler(self):
-        '''
-        Handles game events.
-        '''
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.run = False
-                print('thank you for playing!')
-                pygame.display.quit()
-                exit()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    # Wipe data and trigger controller binding.
-                    self.resetSystemData()
-                    self.bindControllers()
-
-            if event.type == pygame.JOYBUTTONDOWN:
-                for i in self.system['controller']['bindings']:
-                    button = i['button']
-                    joystick = self.joysticks[i['controller']]['joystick']
-                    bound = i['bound_to']
-
-                    if joystick.get_button(bound) and self.buttons[button] != None:
-                        if button == 15:
-                            # Special stuff for start button
-                            self.launchProgram()
-                        self.boot = (self.buttons[button], self.files[button], button)
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                '''
-                Handle mouse/touch.
-                '''
-                mouse_pos = pygame.mouse.get_pos()
-                for i in range(16):
-                    if self.buttons[i] == None:
-                        continue
-                    if self.rectangles[i]['x']+100 > mouse_pos[0] > self.rectangles[i]['x'] and self.rectangles[i]['y']+100 > mouse_pos[1] > self.rectangles[i]['y']:
-                        if i == 15:
-                            # Special stuff for start button
-                            self.launchProgram()
-                        self.boot = (self.buttons[i], self.files[i], i)
-     
-    def startWindow(self):
-        '''
-        Inits the PyGame window, sets all details.
-        '''
-        # Start display
-        pygame.display.init()
-
-        # We should init the caption and icon before the screen runs.
-        pygame.display.set_caption(f'JubePicker V0.2 ({self.caption})')
-        pygame.display.set_icon(pygame.image.load('./assets/tex/icon.png'))
-
-        # Start the screen
-        self.screen = pygame.display.set_mode(self.resolution, self.pygame_flags, display=0, vsync=1)
-        print('Welcome to JubePicker!')
-
-    def drawTexture(self, texture: pygame.Surface, coordinates: Tuple[int, int], size: Tuple[int, int] = None, direct: bool = False):
-        # let's throw this on the screen.
-        original_res = texture.get_size()
-        textrect = texture.get_rect()
-        textrect.center = coordinates
-        if size != None:
-            if direct:
-                texture = pygame.transform.smoothscale(texture, (
-                    int(original_res[0]/size[0]),
-                    int(original_res[1]/size[1])
-                ))
-            else:
-                texture = pygame.transform.smoothscale(texture, (
-                    int(size[0]*original_res[0]/self.resolution[0]),
-                    int(size[1]*original_res[1]/self.resolution[1])
-                ))
-        self.screen.blit(texture, coordinates)
-
-    def drawText(self, text: str, color: tuple, x: int, y: int, size: int, align: int):
-        font = pygame.font.Font(self.system_font, int(size*self.resolution[1]/768))
-        textobj = font.render(text, 1, color)
-        textrect = textobj.get_rect()
-
-        if align == 0:
-            textrect.topleft = (x, y)
-        elif align == 1:
-            textrect.center = (x, y)
-        elif align == 2:
-            textrect.topright = (x, y)
-        else: raise Exception('Unknown font position! Please use 0, 1, 2!')
-
-        self.screen.blit(textobj, textrect)
 
     def theLoop(self):
         '''
@@ -348,12 +354,12 @@ class Picker():
             self.clock.tick(self.framerate)
 
             # Update menu status bar
-            pygame.display.set_caption(f'JubePicker V0.2 ({self.caption})')
+            self.initWindow()
 
             # Headers
             self.drawTexture(background, (0, 0))
-            self.drawTexture(title, (self.resolution[0]/5, 1), (55, 100))
-            self.drawTexture(subtitle, (self.resolution[0]/8, 150), (77, 130))
+            self.drawTexture(title, (self.resolution[0]/5, 1), (120, 200))
+            self.drawTexture(subtitle, (self.resolution[0]/8, 210), (145, 250))
 
             # Auto start message
             clock = self.clock
@@ -371,23 +377,23 @@ class Picker():
                 self.run = False
 
             for e in message.split('\n'):
-                self.drawText(e, (255, 100, 100), 280, 320+txtoffset, 14, 1)
+                self.drawText(e, (255, 100, 100), self.resolution[0]/2, 420+txtoffset, 17, 1)
                 txtoffset = 20
 
-            # Let's draw the button frames.
-            x_offset = 150
-            y_offset = 150
-            x_stock = self.resolution[0]/180
-            frame_x = self.resolution[0]/180
-            frame_y = 450
+            # Let's draw the button frames
+            x_offset = 200
+            y_offset = 195
+            x_stock = self.resolution[0]/200
+            frame_x = self.resolution[0]/200
+            frame_y = 600
 
             i = 0
             for a in range(4):
                 for b in range(4):
                     if i == self.boot[2]:
-                        self.drawTexture(button_select, (frame_x, frame_y), (90, 155))
+                        self.drawTexture(button_select, (frame_x, frame_y), (160, 280))
                     else:
-                        self.drawTexture(button_frame, (frame_x, frame_y), (90, 155))
+                        self.drawTexture(button_frame, (frame_x, frame_y), (160, 280))
                     self.rectangles[i] = {
                         'name': f'rect_{i}',
                         'x': (frame_x),
@@ -404,14 +410,14 @@ class Picker():
                 if self.buttons[i] == None:
                     i+=1
                     continue
-                self.drawTexture(button, (rectangle['x']+9, rectangle['y']+9), (6, 6), direct = True)
+                self.drawTexture(button, (rectangle['x']+13.5, rectangle['y']+13.5), (4.5, 4.5), direct = True)
                 if len(self.buttons[i].split('\n')) == 2:
                     txtoffset = -20
                 else:
                     txtoffset = 0
 
                 for e in self.buttons[i].split('\n'):
-                    self.drawText(e, (255, 255, 255), rectangle['x']+60, rectangle['y']+59+txtoffset, 21, 1)
+                    self.drawText(e, (255, 255, 255), rectangle['x']+77, rectangle['y']+79+txtoffset, 21, 1)
                     txtoffset = 20
                 i+=1
 
