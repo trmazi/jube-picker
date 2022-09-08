@@ -1,6 +1,6 @@
 {
-    "controller":{
-        "used_buttons":[],
+    "controller": {
+        "used_buttons": [],
         "bindings": [
             {
                 "button": 0,
@@ -31,7 +31,8 @@
                 "button": 5,
                 "controller": "",
                 "bound_to": ""
-            },{
+            },
+            {
                 "button": 6,
                 "controller": "",
                 "bound_to": ""
@@ -83,5 +84,5 @@
             }
         ]
     },
-    "firstboot": 1
+    "firstboot": true
 }
