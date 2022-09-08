@@ -84,7 +84,7 @@ class Picker():
         if os.path.exists(self.boot[1]):
             print(f'Starting {clean_title}, goodbye!')
             os.startfile(self.boot[1])
-            exit()
+            quit()
         else:
             raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
 
@@ -97,7 +97,7 @@ class Picker():
                 self.run = False
                 print('thank you for playing!')
                 pygame.display.quit()
-                exit()
+                quit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
@@ -247,7 +247,7 @@ class Picker():
                 self.run = False
                 print('thank you for playing!')
                 pygame.display.quit()
-                exit()
+                quit()
 
             if event.type == pygame.JOYBUTTONDOWN:
                 for joystick in self.joysticks:
