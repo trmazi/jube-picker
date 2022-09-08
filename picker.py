@@ -6,8 +6,10 @@ class Picker():
     '''
     The jubepicker class.
     '''
-    def __init__(self):
+    def __init__(self, systemjson: dict):
         # First, we want to init everything
+        self.system = systemjson
+        self.binding = False
         self.run = True
         self.framerate = 90
         self.clock = pygame.time.Clock()
@@ -17,6 +19,15 @@ class Picker():
         self.caption = 'soon...'
         self.timer = 25
         self.boot = None
+
+        # We should load the system font path into a var. We'll do a simple check on it to be safe.
+        font_path = './assets/fonts/copious-sans-medium.ttf'
+        if os.path.exists(font_path):
+            self.system_font = font_path
+        else: raise Exception(f"Can't load the font! Please check that {font_path} exists!")
+
+        # Joystick data
+        self.joysticks = None
 
         # Create some data vars
         self.rectangles = [None]*16
@@ -38,6 +49,157 @@ class Picker():
         # Now we just light the fuse!
         self.startMenu()
 
+    def saveSystemData(self):
+        '''
+        Saves system.json
+        '''
+        file = open('./system.json', 'w')
+        file.write(json.dumps(self.system, indent=4))
+        file.close()
+
+    def resetSystemData(self):
+        '''
+        Resets system.json
+        '''
+        self.system['firstboot'] = True
+        self.system['controller']['used_buttons'] = []
+        self.system['controller']['bindings'] = [None]*16
+        for i in range(16):
+            self.system['controller']['bindings'][i] = {
+                "button": i,
+                "controller": '',
+                "bound_to": ''
+            }
+        self.saveSystemData()
+
+    def initControllers(self):
+        '''
+        Init all controllers, get their data, store it.
+        '''
+        self.joysticks = []
+        controllers = pygame.joystick.get_count()
+        if controllers <= 0:
+            print(f'\nNo plugged in controllers.\nUsing touch input.')
+        print(f'\nFound {controllers} controller(s)')
+
+        for controller in range(controllers):
+            joystick = pygame.joystick.Joystick(controller)
+            joystick.init()
+
+            if joystick.get_numbuttons() >= 16:
+                self.joysticks.append({
+                    'id': controller,
+                    'joystick': joystick,
+                    'name': joystick.get_name(),
+                    'buttons': joystick.get_numbuttons()
+                })
+
+        if len(self.joysticks) <= 0:
+            print("\nCan't use any of the plugged in controllers!\nPlease make sure you have at least 16 buttons.\nUsing touch input.\n")
+            return
+
+        # Figure out if we need to bind.
+        if self.system['firstboot']:
+            self.binding = True
+            print('\nBinding controllers for firstboot.')
+            self.bindControllers()
+        else:
+            self.binding = False
+
+        return
+
+    def bindEventHandle(self):
+        '''
+        Handles binding events.
+        '''
+        events = []
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.run = False
+                print('thank you for playing!')
+                pygame.display.quit()
+                exit()
+
+            if event.type == pygame.JOYBUTTONDOWN:
+                for joystick in self.joysticks:
+                    for button in range(joystick['buttons']):
+                        joy = joystick['joystick']
+                        if joy.get_button(button):
+                            events.append((joystick['id'], button))
+        return events
+
+    def bindControllers(self):
+        '''
+        the controller binding loop.
+        '''
+        # Before we loop, let's load core screen things.
+        background = pygame.image.load('./assets/tex/background.png')
+        title = pygame.image.load('./assets/tex/title.png')
+        button_frame = pygame.image.load('./assets/tex/button_frame.png')
+        button_select = pygame.image.load('./assets/tex/button_select.png')
+
+        print('\nNow binding controllers.\n')
+
+        self.binding = True
+        self.caption = 'binding controllers...'
+        pygame.display.set_caption(f'JubePicker V0.2 ({self.caption})')
+
+        bound = [False]*16
+
+        while self.binding:
+            bindings = self.system['controller']['bindings']
+            for binding in bindings:
+                while binding['bound_to'] == '':
+                    # Headers
+                    self.drawTexture(background, (0, 0))
+                    self.drawTexture(title, (self.resolution[0]/5, 1), (55, 100))
+                    self.drawText('Controller Binding', (100, 200, 200), 280, 200, 26, 1)
+                    self.drawText('Buttons are in order from top left to bottom right.', (200, 100, 200), 280, 230, 15, 1)
+
+                    # Let's draw the button frames. We'll make the ones that are bound glow.
+                    x_offset = 150
+                    y_offset = 150
+                    x_stock = self.resolution[0]/180
+                    frame_x = self.resolution[0]/180
+                    frame_y = 450
+
+                    i = 0
+                    for a in range(4):
+                        for b in range(4):
+                            if bound[i]:
+                                self.drawTexture(button_select, (frame_x, frame_y), (90, 155))
+                            else:
+                                self.drawTexture(button_frame, (frame_x, frame_y), (90, 155))
+                            frame_x += x_offset
+                            i+=1
+                        frame_y += y_offset
+                        frame_x = x_stock
+
+                    events = self.bindEventHandle()
+                    button = binding['button']
+                    self.drawText(f'Press button {button+1}!', (200, 200, 200), 280, 270, 26, 1)
+
+                    if len(events) == 1:
+                        event = events[0]
+                        if (event[0],event[1]) not in self.system['controller']['used_buttons']:
+                            binding['controller'] = event[0]
+                            binding['bound_to'] = event[1]
+                            bound[button] = True
+                            self.system['controller']['used_buttons'].append((event[0],event[1]))
+
+                    pygame.display.update()
+                    self.screen.fill(pygame.Color("black"))
+
+            self.bindEventHandle()
+            self.drawTexture(background, (0, 0))
+            self.drawTexture(title, (self.resolution[0]/5, 1), (55, 100))
+            self.drawText('Controller binding complete!', (100, 200, 200), 280, 200, 26, 1)
+
+            pygame.display.update()
+            self.screen.fill(pygame.Color("black"))
+            self.system['firstboot'] = False
+            self.saveSystemData()
+            self.binding = False
 
     def startMenu(self):
         '''
@@ -48,6 +210,10 @@ class Picker():
 
         # Set up the screen
         self.startWindow()
+
+        # Wake up controller stuff.
+        pygame.joystick.init()
+        self.initControllers()
 
         # enter a loop.... FOREVERRRRRR (not true)
         self.theLoop()
@@ -80,8 +246,21 @@ class Picker():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    # will be used for rebinding.
-                    print('rebind comin soon :tm:')
+                    # Wipe data and trigger controller binding.
+                    self.resetSystemData()
+                    self.bindControllers()
+
+            if event.type == pygame.JOYBUTTONDOWN:
+                for i in self.system['controller']['bindings']:
+                    button = i['button']
+                    joystick = self.joysticks[i['controller']]['joystick']
+                    bound = i['bound_to']
+
+                    if joystick.get_button(bound) and self.buttons[button] != None:
+                        if button == 15:
+                            # Special stuff for start button
+                            self.launchProgram()
+                        self.boot = (self.buttons[button], self.files[button], button)
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 '''
@@ -105,7 +284,7 @@ class Picker():
         pygame.display.init()
 
         # We should init the caption and icon before the screen runs.
-        pygame.display.set_caption(f'JubePicker V0.1 ({self.caption})')
+        pygame.display.set_caption(f'JubePicker V0.2 ({self.caption})')
         pygame.display.set_icon(pygame.image.load('./assets/tex/icon.png'))
 
         # Start the screen
@@ -157,12 +336,6 @@ class Picker():
         button_select = pygame.image.load('./assets/tex/button_select.png')
         button = pygame.image.load('./assets/tex/button.png')
 
-        # Now, we should load the system font path into a var. We'll do a simple check on it to be safe.
-        font_path = './assets/fonts/copious-sans-medium.ttf'
-        if os.path.exists(font_path):
-            self.system_font = font_path
-        else: raise Exception(f"Can't load the font! Please check that {font_path} exists!")
-
         # We made it!
         self.caption = 'pick a game!'
 
@@ -175,7 +348,7 @@ class Picker():
             self.clock.tick(self.framerate)
 
             # Update menu status bar
-            pygame.display.set_caption(f'JubePicker V0.1 ({self.caption})')
+            pygame.display.set_caption(f'JubePicker V0.2 ({self.caption})')
 
             # Headers
             self.drawTexture(background, (0, 0))
@@ -188,7 +361,7 @@ class Picker():
             self.timer -= dt
             no_newline = self.boot[0].replace('\n', ' ')
             secs = str(self.timer).replace('-','').replace('.',' ')[:2]
-            message = f'{no_newline} will boot automatically\nin {secs} secs.'
+            message = f'{no_newline} will boot automatically in {secs} secs.'
             if len(message.split('\n')) == 2:
                 txtoffset = -20
             else:
@@ -250,9 +423,10 @@ class Picker():
 
 # Start the FEVER!
 if __name__ == "__main__":
-    # load the .env
-    env_state = load_dotenv()
-    if not env_state:
-        raise Exception('Failed to load the .env file! Please reload your repo.')
+    # load the system.json
+    if os.path.exists('./system.json'):
+        systemjson = open('./system.json', 'r')
+        json_read = json.loads(systemjson.read())
+        systemjson.close()
 
-    Picker()
+    Picker(json_read)
