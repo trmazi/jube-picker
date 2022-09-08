@@ -1,5 +1,5 @@
 from typing import Tuple
-import pygame, os, json
+import pygame, os, json, sys
 from dotenv import load_dotenv
 
 class Picker():
@@ -84,7 +84,7 @@ class Picker():
         if os.path.exists(self.boot[1]):
             print(f'Starting {clean_title}, goodbye!')
             os.startfile(self.boot[1])
-            quit()
+            sys.exit()
         else:
             raise Exception(f"Can't load {self.boot[1]} for {clean_title}!\nPlease check your games.json file!")
 
@@ -97,7 +97,7 @@ class Picker():
                 self.run = False
                 print('thank you for playing!')
                 pygame.display.quit()
-                quit()
+                sys.exit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
@@ -247,7 +247,7 @@ class Picker():
                 self.run = False
                 print('thank you for playing!')
                 pygame.display.quit()
-                quit()
+                sys.exit()
 
             if event.type == pygame.JOYBUTTONDOWN:
                 for joystick in self.joysticks:
